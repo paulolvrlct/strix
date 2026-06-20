@@ -12,7 +12,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-22d3ee.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
-[![CI](https://github.com/OWNER/strix/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/strix/actions/workflows/ci.yml)
+[![CI](https://github.com/paulolvrlct/strix/actions/workflows/ci.yml/badge.svg)](https://github.com/paulolvrlct/strix/actions/workflows/ci.yml)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ed.svg)](Dockerfile)
 
 STRIX is a passive OSINT orchestrator. It aggregates several open-source
