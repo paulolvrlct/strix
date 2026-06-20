@@ -33,3 +33,7 @@ htmlcov/
 
 # Internal spec (not published)
 STRIX_BUILD_BRIEF.md
+
+# Demo intermediates (only docs/demo.png is committed)
+docs/_demo.html
+docs/demo.svg
