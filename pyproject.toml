@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "strix"
+version = "0.1.0"
+description = "STRIX — passive OSINT orchestrator with a single CLI and unified reporting"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Paul OLIVIER-LECOURT" }]
+keywords = ["osint", "cli", "recon", "security", "reporting"]
+dependencies = [
+    "typer",
+    "rich",
+    "httpx",
+    "pydantic>=2",
+    "pydantic-settings",
+    "dnspython",
+    "python-whois",
+    "phonenumbers",
+    "pyfiglet",
+    "jinja2",
+    "pyyaml",
+    "maigret",
+    "holehe",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff"]
+
+[project.scripts]
+strix = "strix.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+strix = ["report/templates/*.j2"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# Keep the data/module contracts exactly as written in the build brief (§6/§7):
+# `class X(str, Enum)` and `datetime.now(timezone.utc)` are intentional.
+ignore = ["UP017", "UP041", "UP042"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

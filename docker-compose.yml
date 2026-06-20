@@ -1,0 +1,12 @@
+services:
+  strix:
+    build: .
+    image: strix:latest
+    volumes:
+      - ./output:/app/output      # persistent reports on the host
+    env_file:
+      - .env                      # optional API keys
+    # Usage examples:
+    #   docker compose run --rm strix scan example.com --i-am-authorized
+    #   docker compose run --rm strix username paulx
+    #   docker compose run --rm strix modules

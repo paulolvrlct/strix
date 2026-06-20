@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STRIX report — {{ report.target }}</title>
+<style>
+  :root {
+    --accent: #22d3ee;
+    --bg-top: #0a0e1a;
+    --bg-bottom: #0f1629;
+    --text: #e6edf3;
+    --muted: #8b97a7;
+    --card: rgba(255, 255, 255, .04);
+    --card-border: rgba(34, 211, 238, .2);
+    --sev-info: #8b97a7;
+    --sev-low: #22d3ee;
+    --sev-medium: #f59e0b;
+    --sev-high: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem 4rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background: linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+    background-attachment: fixed;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  code, .mono, td.value { font-family: "SF Mono", ui-monospace, "Cascadia Code", Consolas, monospace; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  header.hero {
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 2rem;
+  }
+  header.hero h1 {
+    margin: 0 0 .25rem;
+    font-size: 2rem;
+    letter-spacing: .08em;
+    color: var(--accent);
+  }
+  header.hero .tagline { color: var(--muted); font-size: .9rem; margin-bottom: 1rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: .75rem 2rem; }
+  .meta div { font-size: .9rem; }
+  .meta .label { color: var(--muted); display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; }
+  .meta .val { font-weight: 600; }
+
+  .card {
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card h2 {
+    margin: 0 0 .25rem;
+    font-size: 1.2rem;
+    color: var(--accent);
+    display: flex;
+    align-items: baseline;
+    gap: .75rem;
+  }
+  .card h2 .dur { color: var(--muted); font-size: .8rem; font-weight: 400; }
+  .error { color: var(--sev-high); font-family: monospace; }
+  .empty { color: var(--muted); font-style: italic; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: .75rem; font-size: .9rem; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: top; }
+  th { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+  td.value { word-break: break-all; }
+
+  .badge {
+    display: inline-block;
+    padding: .1rem .55rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border: 1px solid currentColor;
+  }
+  .sev-info { color: var(--sev-info); }
+  .sev-low { color: var(--sev-low); }
+  .sev-medium { color: var(--sev-medium); }
+  .sev-high { color: var(--sev-high); }
+
+  footer { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 2rem; }
+
+  @media print {
+    body { background: #fff; color: #000; }
+    .card, header.hero { border-color: #ccc; background: #fff; backdrop-filter: none; }
+    a { color: #06c; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>STRIX</h1>
+    <div class="tagline">OSINT Orchestrator · they watch in the dark</div>
+    <div class="meta">
+      <div><span class="label">Target</span><span class="val mono">{{ report.target }}</span></div>
+      <div><span class="label">Type</span><span class="val">{{ report.target_type.value }}</span></div>
+      <div><span class="label">Generated</span><span class="val">{{ report.generated_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}</span></div>
+      <div><span class="label">Findings</span><span class="val">{{ report.total_findings }}</span></div>
+      <div><span class="label">Failed modules</span><span class="val">{{ report.failed_modules | join(", ") or "none" }}</span></div>
+    </div>
+  </header>
+
+  {% for module in report.modules %}
+  <section class="card">
+    <h2>{{ module.module }} <span class="dur">{{ "%.2f"|format(module.duration_s) }}s</span></h2>
+    {% if module.error %}
+      <p class="error">⚠ {{ module.error }}</p>
+    {% elif not module.findings %}
+      <p class="empty">No findings.</p>
+    {% else %}
+      <table>
+        <thead>
+          <tr><th>Title</th><th>Value</th><th>Source</th><th>Severity</th></tr>
+        </thead>
+        <tbody>
+          {% for f in module.findings %}
+          <tr>
+            <td>{{ f.title }}</td>
+            <td class="value">{% if f.url %}<a href="{{ f.url }}" target="_blank" rel="noopener">{{ f.value }}</a>{% else %}{{ f.value }}{% endif %}</td>
+            <td>{{ f.source }}</td>
+            <td><span class="badge sev-{{ f.severity.value }}">{{ f.severity.value }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  <footer>Generated by STRIX — passive OSINT orchestrator · for authorized use only.</footer>
+</div>
+</body>
+</html>

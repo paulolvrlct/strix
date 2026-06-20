@@ -1,0 +1,13 @@
+typer
+rich
+httpx
+pydantic>=2
+pydantic-settings
+dnspython
+python-whois
+phonenumbers
+pyfiglet
+jinja2
+pyyaml
+maigret
+holehe

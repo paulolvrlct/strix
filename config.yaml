@@ -1,0 +1,10 @@
+app_name: "STRIX"          # rename the tool here, in a single place
+version: "0.1.0"
+max_concurrency: 5
+default_output_dir: "./output"
+default_formats: ["json", "md", "html"]
+acknowledged_authorization: false   # set to true OR pass --i-am-authorized
+log_level: "INFO"
+rate_limits:                # per-module override (seconds)
+  domain: 1.0
+  ip: 1.0
