@@ -5,7 +5,8 @@ services:
     volumes:
       - ./output:/app/output      # persistent reports on the host
     env_file:
-      - .env                      # optional API keys
+      - path: .env                # optional API keys (file is optional)
+        required: false
     # Usage examples:
     #   docker compose run --rm strix scan example.com --i-am-authorized
     #   docker compose run --rm strix username paulx
