@@ -131,10 +131,10 @@ stuffing, aggressive port scanning, or payload delivery.
 ## Roadmap
 
 - [x] Phase 0 — Scaffold (models, config, CLI skeleton, plugin registry)
-- [ ] Phase 1 — Core + domain/username/email modules + text report
-- [ ] Phase 2 — IP/phone modules + branded HTML report
-- [ ] Phase 3 — Docker (hardened, non-root)
-- [ ] Phase 4 — Tests, CI, full README, network error handling
+- [X] Phase 1 — Core + domain/username/email modules + text report
+- [X] Phase 2 — IP/phone modules + branded HTML report
+- [X] Phase 3 — Docker (hardened, non-root)
+- [X] Phase 4 — Tests, CI, full README, network error handling
 
 ## License
 
