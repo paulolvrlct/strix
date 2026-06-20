@@ -20,4 +20,5 @@ RUN mkdir -p /app/output && chown -R strix:strix /app
 USER strix
 
 ENTRYPOINT ["python", "-m", "strix"]
-CMD ["--help"]
+# Default to the interactive menu (run with a TTY, e.g. `docker compose run --rm strix`).
+CMD ["menu"]

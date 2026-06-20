@@ -28,6 +28,7 @@ into a common schema, and emits an actionable deliverable.
 ## Features
 
 - **Single CLI** over six target types: username, email, domain, IP, phone, image.
+- **Interactive menu**: run `strix` with no arguments for a numbered, navigable multitool.
 - **Image forensics**: EXIF metadata and GPS extraction via ExifTool (local file or URL).
 - **Passive recon only** — STRIX observes public sources, it never attacks.
 - **No API key required** for core modules (optional keys enable richer results).
@@ -85,6 +86,20 @@ sudo apt install libimage-exiftool-perl whois
 `whois` are system tools. Each module degrades gracefully if its binary is absent.
 
 ## Usage
+
+### Interactive menu (multitool)
+
+Run with no arguments to get a numbered menu: pick a scan, type the target, and it
+runs — then returns to the menu. Quit with `0`.
+
+```bash
+strix                                  # local
+docker compose run --rm strix          # Docker (TTY allocated automatically)
+# or explicitly:
+strix menu
+```
+
+### Direct commands
 
 ```bash
 strix username paulx                 # single source-type

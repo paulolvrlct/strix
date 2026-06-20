@@ -7,6 +7,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from strix.banner import render_banner
@@ -20,7 +21,6 @@ from strix.target import detect_target_type
 
 app = typer.Typer(
     add_completion=False,
-    no_args_is_help=True,
     help="STRIX — passive OSINT orchestrator with unified reporting.",
 )
 console = Console()
@@ -47,12 +47,16 @@ _ConcOpt = typer.Option(None, "--max-concurrency", help="Concurrency limit (defa
 _AuthOpt = typer.Option(False, "--i-am-authorized", help="Acknowledge the legal warning.")
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def _main(
+    ctx: typer.Context,
     no_banner: bool = typer.Option(False, "--no-banner", help="Hide the ASCII banner."),
 ) -> None:
-    """Global options. The banner itself is rendered by :func:`run`."""
+    """Global options. With no command, launch the interactive menu."""
     setup_logging(settings.log_level)
+    if ctx.invoked_subcommand is None:
+        interactive_menu()
+        raise typer.Exit()
 
 
 @app.command()
@@ -305,6 +309,93 @@ def scan(
     """Auto-detect the target type and run every compatible module."""
     ttype = _resolve_type(target, type_)
     _execute(target, ttype, output, fmt, quiet, max_concurrency, authorized)
+
+
+# ----- interactive menu ---------------------------------------------------------------
+# (key, label, target type or None for auto-detect)
+_MENU: list[tuple[str, str, TargetType | None]] = [
+    ("1", "Username (Maigret)", TargetType.USERNAME),
+    ("2", "Email (Holehe)", TargetType.EMAIL),
+    ("3", "Domain (crt.sh / DNS / WHOIS)", TargetType.DOMAIN),
+    ("4", "IP (Shodan InternetDB / ip-api)", TargetType.IP),
+    ("5", "Phone (phonenumbers)", TargetType.PHONE),
+    ("6", "Image (ExifTool metadata + GPS)", TargetType.IMAGE),
+    ("7", "Auto-detect target type", None),
+]
+
+
+def _interactive_authorize() -> bool:
+    """Show the legal notice once per session and require acknowledgement."""
+    if settings.acknowledged_authorization:
+        return True
+    console.print(Panel(LEGAL_TEXT, title="Authorization required", border_style="red"))
+    try:
+        return Confirm.ask("Do you confirm authorized, lawful use?", default=False)
+    except (EOFError, KeyboardInterrupt):
+        return False
+
+
+def _print_menu() -> None:
+    table = Table(title="STRIX — choose a scan", header_style="bold #22d3ee", show_header=False)
+    table.add_column("#", style="bold #22d3ee", justify="right")
+    table.add_column("Action")
+    for key, label, _ in _MENU:
+        table.add_row(key, label)
+    table.add_row("m", "List modules")
+    table.add_row("0", "Quit")
+    console.print(table)
+
+
+def interactive_menu() -> None:
+    """Run the numbered, navigable menu loop until the user quits."""
+    if not _interactive_authorize():
+        console.print("[yellow]Authorization not granted. Exiting.[/]")
+        return
+
+    while True:
+        console.print()
+        _print_menu()
+        try:
+            choice = Prompt.ask("Select").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            console.print("\nBye.")
+            return
+
+        if choice in ("0", "q", "quit", "exit"):
+            console.print("Bye.")
+            return
+        if choice == "m":
+            modules()
+            continue
+
+        match = next((m for m in _MENU if m[0] == choice), None)
+        if match is None:
+            console.print("[yellow]Invalid choice.[/]")
+            continue
+
+        _, label, ttype = match
+        try:
+            target = Prompt.ask(f"Target for [bold]{label}[/]").strip()
+        except (EOFError, KeyboardInterrupt):
+            console.print("\nBye.")
+            return
+        if not target:
+            console.print("[yellow]Empty target, skipped.[/]")
+            continue
+
+        resolved = ttype or _resolve_type(target, "auto")
+        try:
+            # Authorized at the session level, so each scan runs without re-prompting.
+            _execute(target, resolved, None, None, False, None, True)
+        except typer.Exit:
+            # e.g. no module available for that type — keep the menu running.
+            pass
+
+
+@app.command()
+def menu() -> None:
+    """Launch the interactive numbered menu (a navigable multitool)."""
+    interactive_menu()
 
 
 def run() -> None:
