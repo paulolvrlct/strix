@@ -1,0 +1,26 @@
+# Keep the build context (and image) lean — Docker does not honor .gitignore.
+.git/
+.venv/
+venv/
+env/
+output/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Demo intermediates (only docs/demo.png is needed)
+docs/_demo.html
+docs/demo.svg
+
+# Secrets / local env
+.env
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
