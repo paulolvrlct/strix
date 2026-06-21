@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from rich.console import Group
+import sys
+import time
+
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.text import Text
 
@@ -57,3 +60,29 @@ def render_banner(
         expand=False,
         padding=(0, 2),
     )
+
+
+_BOOT_SEQUENCE = [
+    "initializing kernel",
+    "mounting recon modules",
+    "arming OSINT payloads",
+    "establishing covert channel",
+    "routing through proxy mesh",
+    "spoofing fingerprint",
+]
+
+
+def play_boot(console: Console, *, delay: float = 0.13) -> None:
+    """Movie-style boot sequence: reveal lines one by one with a slight delay.
+
+    No-op when stdout is not a TTY (pipes / CI), so it never disturbs scripts.
+    """
+    if not sys.stdout.isatty():
+        return
+    for line in _BOOT_SEQUENCE:
+        dots = "." * max(3, 32 - len(line))
+        console.print(f"[{DIM}]> {line}{dots}[/]", end="")
+        time.sleep(delay)
+        console.print(f" [bold {ACCENT}]✓ OK[/]")
+    console.print(f"[bold {ACCENT}]> ACCESS GRANTED[/] [{DIM}]:: launching console ::[/]\n")
+    time.sleep(0.2)

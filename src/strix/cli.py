@@ -10,7 +10,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from strix.banner import render_banner
+from strix.banner import play_boot, render_banner
 from strix.config import settings
 from strix.logging import setup_logging
 from strix.models import ModuleResult, Report, Severity, TargetType
@@ -530,10 +530,14 @@ def menu() -> None:
 
 
 def run() -> None:
-    """Console-script entry point: render the banner (unless suppressed), then dispatch."""
+    """Console-script entry point: boot sequence + banner (unless suppressed), then dispatch."""
     argv = sys.argv[1:]
     suppress = any(a in ("--no-banner", "--quiet", "-q") for a in argv)
+    positionals = [a for a in argv if not a.startswith("-")]
+    is_menu = not positionals or positionals[0] == "menu"
     if not suppress:
+        if is_menu:
+            play_boot(console)  # cinematic boot only when entering the console
         console.print(render_banner(settings.app_name, settings.version))
     app()
 
