@@ -97,7 +97,7 @@ def _render(console: Console, report: Report) -> None:
     body = (
         f"[{DIM_GREEN}]TARGET   ::[/] [bold {GREEN}]{report.target}[/]\n"
         f"[{DIM_GREEN}]VECTOR   ::[/] {report.target_type.value}\n"
-        f"[{DIM_GREEN}]INTEL    ::[/] [bold {GREEN}]{report.total_findings}[/] data points exfiltrated\n"
+        f"[{DIM_GREEN}]INTEL    ::[/] [bold {GREEN}]{report.total_findings}[/] data points\n"
         f"[{DIM_GREEN}]FAILED   ::[/] [{RED}]none[/]\n"
         f"[{DIM_GREEN}]ELAPSED  ::[/] 0.2s\n"
         f"[{DIM_GREEN}]DUMP     ::[/] output/1.1.1.1_20260620_120000"
