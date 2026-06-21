@@ -25,11 +25,16 @@ from rich.terminal_theme import SVG_EXPORT_THEME
 from strix.banner import render_banner
 from strix.models import Finding, ModuleResult, Report, Severity, TargetType
 
+GREEN = "#00ff41"
+DIM_GREEN = "#1f8b3a"
+AMBER = "#ffb000"
+RED = "#ff003c"
+
 _SEV_STYLE = {
-    Severity.INFO: "dim",
-    Severity.LOW: "cyan",
-    Severity.MEDIUM: "orange3",
-    Severity.HIGH: "bold red",
+    Severity.INFO: DIM_GREEN,
+    Severity.LOW: GREEN,
+    Severity.MEDIUM: AMBER,
+    Severity.HIGH: f"bold {RED}",
 }
 
 _MONO = "Menlo,'DejaVu Sans Mono',monospace"
@@ -76,8 +81,9 @@ def _render(console: Console, report: Report) -> None:
     console.print()
     for module in report.modules:
         table = Table(
-            title=f"{module.module}  ({module.duration_s:.1f}s)",
-            header_style="bold #22d3ee",
+            title=f"[bold {GREEN}]>> {module.module}[/] [{DIM_GREEN}]({module.duration_s:.1f}s)[/]",
+            header_style=f"bold {GREEN}",
+            border_style=DIM_GREEN,
         )
         table.add_column("Title")
         table.add_column("Value", overflow="fold")
@@ -89,14 +95,14 @@ def _render(console: Console, report: Report) -> None:
         console.print(table)
 
     body = (
-        f"[bold]Target[/]: {report.target}\n"
-        f"[bold]Type[/]: {report.target_type.value}\n"
-        f"[bold]Findings[/]: {report.total_findings}\n"
-        f"[bold]Failed modules[/]: none\n"
-        f"[bold]Duration[/]: 0.2s\n"
-        f"[bold]Report[/]: output/1.1.1.1_20260620_120000"
+        f"[{DIM_GREEN}]TARGET   ::[/] [bold {GREEN}]{report.target}[/]\n"
+        f"[{DIM_GREEN}]VECTOR   ::[/] {report.target_type.value}\n"
+        f"[{DIM_GREEN}]INTEL    ::[/] [bold {GREEN}]{report.total_findings}[/] data points exfiltrated\n"
+        f"[{DIM_GREEN}]FAILED   ::[/] [{RED}]none[/]\n"
+        f"[{DIM_GREEN}]ELAPSED  ::[/] 0.2s\n"
+        f"[{DIM_GREEN}]DUMP     ::[/] output/1.1.1.1_20260620_120000"
     )
-    console.print(Panel(body, title="Summary", border_style="#22d3ee"))
+    console.print(Panel(body, title=f"[bold {GREEN}]// EXFILTRATION REPORT[/]", border_style=GREEN))
 
 
 def _find_chrome() -> str | None:

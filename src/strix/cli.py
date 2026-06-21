@@ -30,11 +30,17 @@ LEGAL_TEXT = (
     "You are responsible for complying with applicable laws and platform ToS."
 )
 
+# Hacker-movie phosphor palette.
+GREEN = "#00ff41"
+DIM_GREEN = "#1f8b3a"
+AMBER = "#ffb000"
+RED = "#ff003c"
+
 _SEV_STYLE = {
-    Severity.INFO: "dim",
-    Severity.LOW: "cyan",
-    Severity.MEDIUM: "orange3",
-    Severity.HIGH: "bold red",
+    Severity.INFO: DIM_GREEN,
+    Severity.LOW: GREEN,
+    Severity.MEDIUM: AMBER,
+    Severity.HIGH: f"bold {RED}",
 }
 
 # ----- shared options -----------------------------------------------------------------
@@ -62,7 +68,7 @@ def _main(
 @app.command()
 def version() -> None:
     """Print the STRIX version and exit."""
-    console.print(f"[bold #22d3ee]{settings.app_name}[/] v{settings.version}")
+    console.print(f"[bold #00ff41]{settings.app_name}[/] v{settings.version}")
 
 
 @app.command()
@@ -70,9 +76,13 @@ def modules() -> None:
     """List available modules with their target types and API-key requirement."""
     mods = discover_modules()
     if not mods:
-        console.print("[yellow]No modules registered yet.[/]")
+        console.print(f"[{AMBER}]No modules registered yet.[/]")
         return
-    table = Table(title="STRIX modules", header_style="bold #22d3ee")
+    table = Table(
+        title=f"[bold {GREEN}]:: STRIX ARSENAL ::[/]",
+        header_style=f"bold {GREEN}",
+        border_style=DIM_GREEN,
+    )
     table.add_column("Module")
     table.add_column("Target types")
     table.add_column("API key")
@@ -93,10 +103,16 @@ def modules() -> None:
 def _require_authorization(authorized: bool) -> None:
     if settings.acknowledged_authorization or authorized:
         return
-    console.print(Panel(LEGAL_TEXT, title="Authorization required", border_style="red"))
     console.print(
-        "Re-run with [bold]--i-am-authorized[/] or set "
-        "[bold]acknowledged_authorization: true[/] in config.yaml."
+        Panel(
+            LEGAL_TEXT,
+            title=f"[bold {RED}][ ACCESS DENIED — AUTHORIZATION REQUIRED ][/]",
+            border_style=RED,
+        )
+    )
+    console.print(
+        f"[{DIM_GREEN}]> re-run with [bold {GREEN}]--i-am-authorized[/] or set "
+        f"[bold {GREEN}]acknowledged_authorization: true[/] in config.yaml.[/]"
     )
     raise typer.Exit(code=2)
 
@@ -133,12 +149,19 @@ def _run_with_progress(
         console=console,
         transient=True,
     ) as progress:
-        task_ids = {m.name: progress.add_task(f"{m.name}…", total=1) for m in mods}
+        task_ids = {
+            m.name: progress.add_task(f"[{GREEN}]breaching[/] {m.name} …", total=1) for m in mods
+        }
 
         def on_done(result: ModuleResult) -> None:
-            mark = "[green]✓[/]" if not result.error else "[red]✗[/]"
+            if result.error:
+                mark = f"[{RED}]✗ FAILED[/]"
+            else:
+                mark = f"[{GREEN}]✓ PWNED[/]"
             progress.update(
-                task_ids[result.module], completed=1, description=f"{result.module} {mark}"
+                task_ids[result.module],
+                completed=1,
+                description=f"[{DIM_GREEN}]{result.module}[/] {mark}",
             )
 
         return asyncio.run(
@@ -150,15 +173,20 @@ def _render_results(report: Report) -> None:
     for module in report.modules:
         if module.error:
             console.print(
-                Panel(f"[red]{module.error}[/]", title=f"{module.module} ✗", border_style="red")
+                Panel(
+                    f"[{RED}]{module.error}[/]",
+                    title=f"[bold {RED}]✗ {module.module} :: FAILED[/]",
+                    border_style=RED,
+                )
             )
             continue
         if not module.findings:
-            console.print(f"[dim]{module.module}: no findings[/]")
+            console.print(f"[{DIM_GREEN}]>> {module.module}: no intel recovered[/]")
             continue
         table = Table(
-            title=f"{module.module}  ({module.duration_s:.1f}s)",
-            header_style="bold #22d3ee",
+            title=f"[bold {GREEN}]>> {module.module}[/] [{DIM_GREEN}]({module.duration_s:.1f}s)[/]",
+            header_style=f"bold {GREEN}",
+            border_style=DIM_GREEN,
         )
         table.add_column("Title")
         table.add_column("Value", overflow="fold")
@@ -173,15 +201,16 @@ def _render_results(report: Report) -> None:
 def _summary(report: Report, dest) -> None:
     failed = ", ".join(report.failed_modules) or "none"
     total_duration = sum(m.duration_s for m in report.modules)
+    intel = report.total_findings
     body = (
-        f"[bold]Target[/]: {report.target}\n"
-        f"[bold]Type[/]: {report.target_type.value}\n"
-        f"[bold]Findings[/]: {report.total_findings}\n"
-        f"[bold]Failed modules[/]: {failed}\n"
-        f"[bold]Duration[/]: {total_duration:.1f}s\n"
-        f"[bold]Report[/]: {dest}"
+        f"[{DIM_GREEN}]TARGET   ::[/] [bold {GREEN}]{report.target}[/]\n"
+        f"[{DIM_GREEN}]VECTOR   ::[/] {report.target_type.value}\n"
+        f"[{DIM_GREEN}]INTEL    ::[/] [bold {GREEN}]{intel}[/] data points exfiltrated\n"
+        f"[{DIM_GREEN}]FAILED   ::[/] [{RED}]{failed}[/]\n"
+        f"[{DIM_GREEN}]ELAPSED  ::[/] {total_duration:.1f}s\n"
+        f"[{DIM_GREEN}]DUMP     ::[/] {dest}"
     )
-    console.print(Panel(body, title="Summary", border_style="#22d3ee"))
+    console.print(Panel(body, title=f"[bold {GREEN}]// EXFILTRATION REPORT[/]", border_style=GREEN))
 
 
 def _execute(
@@ -410,41 +439,51 @@ def _interactive_authorize() -> bool:
     """Show the legal notice once per session and require acknowledgement."""
     if settings.acknowledged_authorization:
         return True
-    console.print(Panel(LEGAL_TEXT, title="Authorization required", border_style="red"))
+    console.print(
+        Panel(LEGAL_TEXT, title=f"[bold {RED}][ AUTHORIZATION REQUIRED ][/]", border_style=RED)
+    )
     try:
-        return Confirm.ask("Do you confirm authorized, lawful use?", default=False)
+        granted = Confirm.ask(f"[{GREEN}]> confirm authorized, lawful use[/]", default=False)
     except (EOFError, KeyboardInterrupt):
         return False
+    if granted:
+        console.print(f"[bold {GREEN}][ ACCESS GRANTED ][/] [{DIM_GREEN}]welcome, operator.[/]")
+    return granted
 
 
 def _print_menu() -> None:
-    table = Table(title="STRIX — choose a scan", header_style="bold #22d3ee", show_header=False)
-    table.add_column("#", style="bold #22d3ee", justify="right")
+    table = Table(
+        title=f"[bold {GREEN}]:: STRIX C2 // SELECT PAYLOAD ::[/]",
+        header_style=f"bold {GREEN}",
+        show_header=False,
+        border_style=DIM_GREEN,
+    )
+    table.add_column("#", style=f"bold {GREEN}", justify="right")
     table.add_column("Action")
     for key, label, *_rest in _MENU:
-        table.add_row(key, label)
-    table.add_row("m", "List modules")
-    table.add_row("0", "Quit")
+        table.add_row(f"[{GREEN}]{key}[/]", label)
+    table.add_row(f"[{GREEN}]m[/]", "List modules")
+    table.add_row(f"[{RED}]0[/]", "Disconnect")
     console.print(table)
 
 
 def interactive_menu() -> None:
     """Run the numbered, navigable menu loop until the user quits."""
     if not _interactive_authorize():
-        console.print("[yellow]Authorization not granted. Exiting.[/]")
+        console.print(f"[bold {RED}][ ACCESS DENIED ][/] connection terminated.")
         return
 
     while True:
         console.print()
         _print_menu()
         try:
-            choice = Prompt.ask("Select").strip().lower()
+            choice = Prompt.ask(f"[bold {GREEN}]root@strix[/]:[{AMBER}]~[/]#").strip().lower()
         except (EOFError, KeyboardInterrupt):
-            console.print("\nBye.")
+            console.print(f"\n[{DIM_GREEN}]connection closed.[/]")
             return
 
         if choice in ("0", "q", "quit", "exit"):
-            console.print("Bye.")
+            console.print(f"[{DIM_GREEN}]logging out … connection closed.[/]")
             return
         if choice == "m":
             modules()
@@ -452,17 +491,17 @@ def interactive_menu() -> None:
 
         match = next((m for m in _MENU if m[0] == choice), None)
         if match is None:
-            console.print("[yellow]Invalid choice.[/]")
+            console.print(f"[{RED}]>> invalid command.[/]")
             continue
 
         _, label, ttype, only, include_active = match
         try:
-            target = Prompt.ask(f"Target for [bold]{label}[/]").strip()
+            target = Prompt.ask(f"[{GREEN}]>> set target[/] [{DIM_GREEN}]({label})[/]").strip()
         except (EOFError, KeyboardInterrupt):
-            console.print("\nBye.")
+            console.print(f"\n[{DIM_GREEN}]connection closed.[/]")
             return
         if not target:
-            console.print("[yellow]Empty target, skipped.[/]")
+            console.print(f"[{AMBER}]>> no target set, aborted.[/]")
             continue
 
         resolved = ttype or _resolve_type(target, "auto")

@@ -4,7 +4,10 @@ from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
 
-ACCENT = "#22d3ee"
+# Hacker-movie phosphor palette.
+ACCENT = "#00ff41"  # matrix green
+DIM = "#1f8b3a"
+ALERT = "#ff003c"
 
 # Static fallback banner (ansi_shadow rendering of "STRIX"). See Annex A of the brief.
 BANNER = r"""   ███████╗████████╗██████╗ ██╗██╗  ██╗
@@ -14,7 +17,14 @@ BANNER = r"""   ███████╗████████╗████�
    ███████║   ██║   ██║  ██║██║██╔╝ ██╗
    ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝"""
 
-TAGLINE = "OSINT Orchestrator · they watch in the dark"
+TAGLINE = "// intrusion recon framework · they watch in the dark"
+
+_BOOT = [
+    "[ SYSTEM ONLINE ]  user: root  node: strix  clearance: ROOT",
+    "> establishing covert channel ............ OK",
+    "> loading recon modules .................. OK",
+    "> arming OSINT payloads .................. OK",
+]
 
 
 def _ascii_art(app_name: str) -> str:
@@ -30,11 +40,20 @@ def _ascii_art(app_name: str) -> str:
 def render_banner(
     app_name: str = "STRIX", version: str = "0.1.0", *, use_figlet: bool = False
 ) -> Panel:
-    """Build a Rich panel with the cyan ASCII banner, tagline and version."""
+    """Build a Rich panel with the green ASCII banner, boot sequence and version."""
     art = _ascii_art(app_name) if use_figlet else BANNER
-    body = Group(
+    lines: list[Text] = [
         Text(art, style=f"bold {ACCENT}"),
-        Text(f"  {TAGLINE}", style="dim italic"),
-        Text(f"  v{version}", style=ACCENT),
+        Text(f"  {TAGLINE}", style=f"italic {DIM}"),
+        Text(""),
+    ]
+    lines += [Text(f"  {line}", style=DIM) for line in _BOOT]
+    lines.append(Text(f"  >> {app_name} v{version} ready. type a number to deploy.", style=ACCENT))
+    return Panel(
+        Group(*lines),
+        title=f"[bold {ACCENT}]:: {app_name} C2 ::[/]",
+        subtitle=f"[{ALERT}]● LIVE[/]",
+        border_style=ACCENT,
+        expand=False,
+        padding=(0, 2),
     )
-    return Panel(body, border_style=ACCENT, expand=False, padding=(0, 2))

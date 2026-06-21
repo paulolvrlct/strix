@@ -43,8 +43,6 @@ into a common schema, and emits an actionable deliverable.
 
 ## Demo
 
-> Placeholders — replace with real captures.
-
 ![Terminal demo](docs/demo.png)
 
 ## Modules
