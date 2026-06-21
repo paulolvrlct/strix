@@ -76,12 +76,14 @@ def modules() -> None:
     table.add_column("Module")
     table.add_column("Target types")
     table.add_column("API key")
+    table.add_column("Mode")
     table.add_column("Description")
     for m in mods:
         table.add_row(
             m.name,
             ", ".join(t.value for t in m.target_types),
             "yes" if m.requires_api_key else "no",
+            "[red]active[/]" if m.active else "passive",
             m.description,
         )
     console.print(table)
@@ -190,9 +192,14 @@ def _execute(
     quiet: bool,
     max_concurrency: int | None,
     authorized: bool,
+    *,
+    include_active: bool = False,
+    only: list[str] | None = None,
 ) -> None:
     _require_authorization(authorized)
-    mods = select_modules(ttype)
+    mods = select_modules(ttype, include_active=include_active)
+    if only is not None:
+        mods = [m for m in mods if m.name in only]
     if not mods:
         console.print(f"[yellow]No modules available for target type '{ttype.value}'.[/]")
         raise typer.Exit(code=1)
@@ -295,32 +302,107 @@ def image(
 
 
 @app.command()
-def scan(
+def file(
     target: str,
-    type_: str = typer.Option(
-        "auto", "--type", help="auto|username|email|domain|ip|phone|image (default auto)."
-    ),
     output: str = _OutputOpt,
     fmt: str = _FormatOpt,
     quiet: bool = _QuietOpt,
     max_concurrency: int = _ConcOpt,
     authorized: bool = _AuthOpt,
 ) -> None:
-    """Auto-detect the target type and run every compatible module."""
+    """Run file metadata modules (ExifTool): PDF, Office, audio, video..."""
+    _execute(target, TargetType.FILE, output, fmt, quiet, max_concurrency, authorized)
+
+
+@app.command()
+def wallet(
+    target: str,
+    output: str = _OutputOpt,
+    fmt: str = _FormatOpt,
+    quiet: bool = _QuietOpt,
+    max_concurrency: int = _ConcOpt,
+    authorized: bool = _AuthOpt,
+) -> None:
+    """Look up a crypto wallet (BTC/ETH) balance and activity via public chain APIs."""
+    _execute(target, TargetType.WALLET, output, fmt, quiet, max_concurrency, authorized)
+
+
+@app.command()
+def dork(
+    target: str,
+    output: str = _OutputOpt,
+    fmt: str = _FormatOpt,
+    quiet: bool = _QuietOpt,
+    max_concurrency: int = _ConcOpt,
+    authorized: bool = _AuthOpt,
+) -> None:
+    """Generate search-engine dork URLs (Google/Bing/DuckDuckGo) for a target."""
+    ttype = _resolve_type(target, "auto")
+    if ttype in (TargetType.IMAGE, TargetType.FILE, TargetType.WALLET, TargetType.PHONE):
+        ttype = TargetType.DOMAIN  # dorking treats the target as a keyword
+    _execute(target, ttype, output, fmt, quiet, max_concurrency, authorized, only=["dorking"])
+
+
+@app.command()
+def port(
+    target: str,
+    output: str = _OutputOpt,
+    fmt: str = _FormatOpt,
+    quiet: bool = _QuietOpt,
+    max_concurrency: int = _ConcOpt,
+    authorized: bool = _AuthOpt,
+) -> None:
+    """ACTIVE TCP port scan of an authorized IP/host (touches the target)."""
+    ttype = TargetType.DOMAIN if any(c.isalpha() for c in target) else TargetType.IP
+    _execute(
+        target,
+        ttype,
+        output,
+        fmt,
+        quiet,
+        max_concurrency,
+        authorized,
+        include_active=True,
+        only=["portscan"],
+    )
+
+
+@app.command()
+def scan(
+    target: str,
+    type_: str = typer.Option(
+        "auto",
+        "--type",
+        help="auto|username|email|domain|ip|phone|image|file|wallet (default auto).",
+    ),
+    output: str = _OutputOpt,
+    fmt: str = _FormatOpt,
+    quiet: bool = _QuietOpt,
+    max_concurrency: int = _ConcOpt,
+    active: bool = typer.Option(
+        False, "--active", help="Also run ACTIVE modules (e.g. port scan). Authorized targets only."
+    ),
+    authorized: bool = _AuthOpt,
+) -> None:
+    """Auto-detect the target type and run every compatible module (passive by default)."""
     ttype = _resolve_type(target, type_)
-    _execute(target, ttype, output, fmt, quiet, max_concurrency, authorized)
+    _execute(target, ttype, output, fmt, quiet, max_concurrency, authorized, include_active=active)
 
 
 # ----- interactive menu ---------------------------------------------------------------
-# (key, label, target type or None for auto-detect)
-_MENU: list[tuple[str, str, TargetType | None]] = [
-    ("1", "Username (Maigret)", TargetType.USERNAME),
-    ("2", "Email (Holehe)", TargetType.EMAIL),
-    ("3", "Domain (crt.sh / DNS / WHOIS)", TargetType.DOMAIN),
-    ("4", "IP (Shodan InternetDB / ip-api)", TargetType.IP),
-    ("5", "Phone (phonenumbers)", TargetType.PHONE),
-    ("6", "Image (ExifTool metadata + GPS)", TargetType.IMAGE),
-    ("7", "Auto-detect target type", None),
+# (key, label, target type or None for auto-detect, only-modules, include_active)
+_MENU: list[tuple[str, str, TargetType | None, list[str] | None, bool]] = [
+    ("1", "Username (Maigret)", TargetType.USERNAME, None, False),
+    ("2", "Email (Holehe)", TargetType.EMAIL, None, False),
+    ("3", "Domain (crt.sh / DNS / WHOIS)", TargetType.DOMAIN, None, False),
+    ("4", "IP (Shodan InternetDB / ip-api)", TargetType.IP, None, False),
+    ("5", "Phone (phonenumbers)", TargetType.PHONE, None, False),
+    ("6", "Image (ExifTool metadata + GPS)", TargetType.IMAGE, None, False),
+    ("7", "File metadata (PDF/Office/media)", TargetType.FILE, None, False),
+    ("8", "Crypto wallet (BTC/ETH)", TargetType.WALLET, None, False),
+    ("9", "Dorking (search-engine queries)", TargetType.DOMAIN, ["dorking"], False),
+    ("10", "Port scan (ACTIVE — authorized only)", None, ["portscan"], True),
+    ("a", "Auto-detect target type (passive)", None, None, False),
 ]
 
 
@@ -339,7 +421,7 @@ def _print_menu() -> None:
     table = Table(title="STRIX — choose a scan", header_style="bold #22d3ee", show_header=False)
     table.add_column("#", style="bold #22d3ee", justify="right")
     table.add_column("Action")
-    for key, label, _ in _MENU:
+    for key, label, *_rest in _MENU:
         table.add_row(key, label)
     table.add_row("m", "List modules")
     table.add_row("0", "Quit")
@@ -373,7 +455,7 @@ def interactive_menu() -> None:
             console.print("[yellow]Invalid choice.[/]")
             continue
 
-        _, label, ttype = match
+        _, label, ttype, only, include_active = match
         try:
             target = Prompt.ask(f"Target for [bold]{label}[/]").strip()
         except (EOFError, KeyboardInterrupt):
@@ -386,7 +468,17 @@ def interactive_menu() -> None:
         resolved = ttype or _resolve_type(target, "auto")
         try:
             # Authorized at the session level, so each scan runs without re-prompting.
-            _execute(target, resolved, None, None, False, None, True)
+            _execute(
+                target,
+                resolved,
+                None,
+                None,
+                False,
+                None,
+                True,
+                include_active=include_active,
+                only=only,
+            )
         except typer.Exit:
             # e.g. no module available for that type — keep the menu running.
             pass

@@ -13,6 +13,8 @@ class TargetType(str, Enum):
     IP = "ip"
     PHONE = "phone"
     IMAGE = "image"
+    FILE = "file"
+    WALLET = "wallet"
 
 
 class Severity(str, Enum):

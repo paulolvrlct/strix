@@ -13,6 +13,7 @@ class BaseModule(ABC):
     target_types: list[TargetType] = []  # supported target types
     requires_api_key: bool = False
     rate_limit: float = 1.0  # minimum seconds between two network requests
+    active: bool = False  # True for modules that touch the target (e.g. port scan)
 
     def supports(self, target_type: TargetType) -> bool:
         return target_type in self.target_types

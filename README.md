@@ -15,10 +15,12 @@
 [![CI](https://github.com/paulolvrlct/strix/actions/workflows/ci.yml/badge.svg)](https://github.com/paulolvrlct/strix/actions/workflows/ci.yml)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ed.svg)](Dockerfile)
 
-STRIX is a passive OSINT orchestrator. It aggregates several open-source
-intelligence sources (username, email, domain, IP, phone) behind a single CLI and
-produces a unified, timestamped report (JSON + Markdown + branded HTML).
-**No API key is required** for the core features.
+STRIX is an OSINT orchestrator that is **passive by default**. It aggregates many
+open-source intelligence sources (username, email, domain, IP, phone, image, file,
+crypto wallet) behind a single CLI and produces a unified, timestamped report
+(JSON + Markdown + branded HTML). **No API key is required** for the core features.
+Active modules (e.g. port scanning) exist but are **opt-in** and gated behind an
+explicit authorization flag — see [Legal / Ethical use](#legal--ethical-use).
 
 The value is not in reinventing existing tools — it is in **orchestration,
 correlation and clean reporting**. STRIX calls proven tools (Maigret, Holehe) and
@@ -27,10 +29,12 @@ into a common schema, and emits an actionable deliverable.
 
 ## Features
 
-- **Single CLI** over six target types: username, email, domain, IP, phone, image.
+- **Single CLI** over eight target types: username, email, domain, IP, phone, image, file, wallet.
 - **Interactive menu**: run `strix` with no arguments for a numbered, navigable multitool.
-- **Image forensics**: EXIF metadata and GPS extraction via ExifTool (local file or URL).
-- **Passive recon only** — STRIX observes public sources, it never attacks.
+- **File & image forensics**: EXIF/metadata + GPS via ExifTool (images, PDF, Office, media).
+- **Crypto wallet lookup**: BTC/ETH balance and activity via public chain APIs (no key).
+- **Dorking engine**: ready-to-click Google/Bing/DuckDuckGo dork URLs for a target.
+- **Passive by default**; optional **active** modules (port scan) are opt-in (`--active`) and authorization-gated.
 - **No API key required** for core modules (optional keys enable richer results).
 - **Async orchestration** with bounded concurrency and per-module rate limiting.
 - **Unified report** in JSON (source of truth), Markdown, and branded HTML.
@@ -45,14 +49,18 @@ into a common schema, and emits an actionable deliverable.
 
 ## Modules
 
-| Module   | Target type | Sources                              | API key |
-|----------|-------------|--------------------------------------|---------|
-| username | username    | Maigret                              | no      |
-| email    | email       | Holehe                               | no      |
-| domain   | domain      | crt.sh, DNS (dnspython), WHOIS       | no      |
-| ip       | ip          | Shodan InternetDB, ip-api            | no      |
-| phone    | phone       | phonenumbers (offline)               | no      |
-| image    | image       | ExifTool (metadata + GPS)            | no      |
+| Module   | Target type        | Sources                          | API key | Mode    |
+|----------|--------------------|----------------------------------|---------|---------|
+| username | username           | Maigret                          | no      | passive |
+| email    | email              | Holehe                           | no      | passive |
+| domain   | domain             | crt.sh, DNS (dnspython), WHOIS   | no      | passive |
+| ip       | ip                 | Shodan InternetDB, ip-api        | no      | passive |
+| phone    | phone              | phonenumbers (offline)           | no      | passive |
+| image    | image              | ExifTool (metadata + GPS)        | no      | passive |
+| file     | file               | ExifTool (PDF/Office/media)      | no      | passive |
+| wallet   | wallet             | blockstream.info, blockchair     | no      | passive |
+| dorking  | domain/user/email  | Google/Bing/DuckDuckGo URLs      | no      | passive |
+| portscan | ip, domain         | TCP connect scan                 | no      | active  |
 
 ## Installation
 
@@ -108,8 +116,13 @@ strix domain example.com
 strix ip 1.1.1.1
 strix phone "+33612345678"
 strix image photo.jpg                 # EXIF metadata + GPS (local file or URL)
-strix scan example.com --i-am-authorized   # auto-detect type, run all compatible modules
-strix modules                        # list available modules
+strix file report.pdf                 # metadata of any document/media file
+strix wallet 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa   # BTC/ETH balance & activity
+strix dork example.com                # search-engine dork URLs
+strix port 1.1.1.1 --i-am-authorized  # ACTIVE TCP port scan (authorized only)
+strix scan example.com --i-am-authorized          # auto-detect, run passive modules
+strix scan 1.1.1.1 --active --i-am-authorized      # also run active modules (port scan)
+strix modules                        # list modules (mode: passive/active)
 strix version
 ```
 
@@ -123,6 +136,7 @@ Main options on scan commands:
 | `--no-banner` | hide the ASCII banner |
 | `--quiet, -q` | minimal output (useful in pipes/CI) |
 | `--max-concurrency INT` | concurrency limit |
+| `--active` | (scan) also run active modules such as the port scan |
 | `--i-am-authorized` | acknowledge the legal warning |
 
 ## Output
@@ -139,9 +153,15 @@ output/<target_slug>_<YYYYMMDD_HHMMSS>/
 
 STRIX is for **authorized security research, CTF, and education only**. You are
 responsible for complying with applicable laws and platform Terms of Service.
-STRIX performs **passive reconnaissance only**: it queries public sources and
-indexed data. It contains no active exploitation, brute-force, credential
-stuffing, aggressive port scanning, or payload delivery.
+
+Most modules are **passive**: they query public sources and indexed data without
+touching the target. STRIX also ships **active** modules (currently a TCP port
+scanner) that *do* contact the target directly. Active modules are clearly marked
+`active` (see `strix modules`), are **never run by default**, and require an
+explicit opt-in (`--active`, or the dedicated `strix port` command) on top of the
+`--i-am-authorized` acknowledgement. **Only run active modules against systems you
+own or are explicitly authorized to test.** STRIX contains no exploitation,
+brute-force, credential stuffing, DoS, or payload-delivery features.
 
 ## Roadmap
 

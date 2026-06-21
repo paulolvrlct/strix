@@ -19,12 +19,19 @@ def _has_any_api_key() -> bool:
     return any(getattr(settings, field, None) for field in _API_KEY_FIELDS)
 
 
-def select_modules(target_type: TargetType) -> list[BaseModule]:
-    """Return modules compatible with the target type, skipping key-gated ones with no key."""
+def select_modules(target_type: TargetType, *, include_active: bool = False) -> list[BaseModule]:
+    """Return modules compatible with the target type.
+
+    Skips key-gated modules with no key, and active (target-touching) modules
+    unless ``include_active`` is set — keeping the default scan passive.
+    """
     selected: list[BaseModule] = []
     for module in modules_for(target_type):
         if module.requires_api_key and not _has_any_api_key():
             log.info("Skipping module %s: requires an API key, none provided", module.name)
+            continue
+        if module.active and not include_active:
+            log.info("Skipping active module %s: pass --active to enable", module.name)
             continue
         selected.append(module)
     return selected
