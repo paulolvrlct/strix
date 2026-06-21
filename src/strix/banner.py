@@ -72,17 +72,30 @@ _BOOT_SEQUENCE = [
 ]
 
 
-def play_boot(console: Console, *, delay: float = 0.13) -> None:
-    """Movie-style boot sequence: reveal lines one by one with a slight delay.
+def play_boot(console: Console, *, char_delay: float = 0.016, line_pause: float = 0.16) -> None:
+    """Movie-style boot sequence: type each line out character by character.
 
     No-op when stdout is not a TTY (pipes / CI), so it never disturbs scripts.
+    Set ``STRIX_NO_BOOT=1`` to skip it even in a terminal.
     """
-    if not sys.stdout.isatty():
+    import os
+
+    if not sys.stdout.isatty() or os.environ.get("STRIX_NO_BOOT"):
         return
+
+    def _type(text: str, style: str) -> None:
+        for ch in text:
+            console.print(ch, end="", style=style, highlight=False, markup=False)
+            console.file.flush()
+            time.sleep(char_delay)
+
     for line in _BOOT_SEQUENCE:
-        dots = "." * max(3, 32 - len(line))
-        console.print(f"[{DIM}]> {line}{dots}[/]", end="")
-        time.sleep(delay)
+        text = f"> {line}"
+        _type(text, DIM)
+        console.print(f"[{DIM}]{'.' * max(3, 34 - len(text))}[/]", end="")
+        time.sleep(line_pause)
         console.print(f" [bold {ACCENT}]✓ OK[/]")
-    console.print(f"[bold {ACCENT}]> ACCESS GRANTED[/] [{DIM}]:: launching console ::[/]\n")
-    time.sleep(0.2)
+    console.print()
+    _type(">> ACCESS GRANTED", f"bold {ACCENT}")
+    console.print(f" [{DIM}]:: launching console ::[/]\n")
+    time.sleep(0.35)
